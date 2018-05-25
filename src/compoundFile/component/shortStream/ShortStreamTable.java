@@ -20,7 +20,8 @@ public class ShortStreamTable {
 				ShortStream shortStream = new ShortStream(shortStreamIDCount, sector, i);
 				shortStreamMap.put(shortStreamIDCount++, shortStream);
 			}
-			sector = sat.nextSector(sector);
+			int nextSectorID = sat.nextSectorID(sector.getID());
+			sector = sectorTable.get(nextSectorID);
 		}
 		size = shortStreamMap.size();
 	}

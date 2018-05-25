@@ -22,7 +22,8 @@ public class SSAT {
 		while (ssatSector != null) {
 			List<Integer> newSsat = ByteHandler.toIntegerList(ssatSector.getBytes(), Sector.ID_LENGTH, endianType);
 			shortStreamIdAllocationTable.addAll(newSsat);
-			ssatSector = sat.nextSector(ssatSector);
+			int nextSectorID = sat.nextSectorID(ssatSector.getID());
+			ssatSector = sectorTable.get(nextSectorID);
 		}
 	}
 	

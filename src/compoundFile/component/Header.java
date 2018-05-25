@@ -83,7 +83,7 @@ public class Header {
 		byte[] compoundDocIdentifier = ByteHandler.part(bytes, COMPOUND_DOC_IDENTIFIER_OFFSET,
 				COMPOUND_DOC_IDENTIFIER_LENGTH);
 		if (ByteHandler.compareBytes(COMPOUND_DOC_IDENTIFIER, compoundDocIdentifier) == false) {
-			throw new IOException("Invalid file format.");
+			throw new IOException("Invalid file format. Invalid identifier for compound file");
 		}
 
 		// check endian type

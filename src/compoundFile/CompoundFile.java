@@ -58,7 +58,7 @@ public class CompoundFile {
 
 		// sectorAllocationTable
 		msat = new MSAT(sectorTable, header.getMsatBytes(), header.getEndianType());
-		sat = new SAT(sectorTable, msat, header.getEndianType());
+		sat = new SAT(msat, header.getEndianType());
 
 		// directory
 		directoryEntryTable = new DirectoryEntryTable(sectorTable, sat, header.getFirstDirectoryStreamSectorId(),

@@ -104,7 +104,8 @@ public class DirectoryEntry {
 			Sector sector = sectorTable.get(firstSectorID);
 			while (sector != null) {
 				data = ByteHandler.merge(data, sector.getBytes());
-				sector = sat.nextSector(sector);
+				int nextSectorId = sat.nextSectorID(sector.getID());
+				sector = sectorTable.get(nextSectorId);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
@@ -124,7 +125,8 @@ public class DirectoryEntry {
 			for (int i = 0; i < (int) Math.ceil(setData.length / sectorSize); i++) {
 				byte[] newData = ByteHandler.part(setData, i * sectorSize, sectorSize);
 				sector.setBytes(newData);
-				sector = sat.nextSector(sector);
+				int nextSectorId = sat.nextSectorID(sector.getID());
+				sector = sectorTable.get(nextSectorId);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);

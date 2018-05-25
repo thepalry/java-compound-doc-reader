@@ -23,7 +23,8 @@ public class DirectoryEntryTable {
 				DirectoryEntry de = new DirectoryEntry(directoryEntryRaw, endianType, charset);
 				directoryEntryMap.put(de.getName(), de);
 			}
-			directorySector = sat.nextSector(directorySector);
+			int nextSectorID = sat.nextSectorID(directorySector.getID());
+			directorySector = sectorTable.get(nextSectorID);
 		}
 	}
 
