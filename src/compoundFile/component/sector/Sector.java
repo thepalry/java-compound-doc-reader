@@ -1,6 +1,6 @@
 package compoundFile.component.sector;
 
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
 
 public class Sector {
 	public static final int ID_LENGTH = 4;
@@ -10,30 +10,19 @@ public class Sector {
 	public static final int MASTER_SECTOR_ALLOCATION_TABLE = -4;
 
 	private int id;
-	private byte[] bytes;
-	private int size;
+	private BytesBlock block;
 
-	public Sector(int id, byte[] bytes) {
+	public Sector(int id, BytesBlock block) {
 		this.id = id;
-		this.bytes = bytes;
-		this.size = bytes.length;
-	}
-
-	public void setBytes(byte[] bytes) {
-		if (bytes.length > size) {
-			bytes = ByteHandler.part(bytes, 0, size);
-		} else if (bytes.length < size) {
-			bytes = ByteHandler.merge(bytes, new byte[size - bytes.length]);
-		}
-		this.bytes = bytes;
+		this.block = block;
 	}
 
 	public int getID() {
 		return id;
 	}
-
-	public byte[] getBytes() {
-		return bytes;
+	
+	public BytesBlock getBlock() {
+		return block;
 	}
 
 	public static boolean isSpecialID(int sectorID) {

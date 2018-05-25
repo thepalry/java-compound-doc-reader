@@ -6,7 +6,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import compoundFile.component.sector.Sector;
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
+import compoundFile.material.BytesHandler;
+import compoundFile.util.BytesUtil;
 
 /* 
 Header Structure of Compound File
@@ -61,6 +63,8 @@ public class Header {
 	private static final int MASTER_SECTOR_ID_IN_HEADER_OFFSET = 76;
 	private static final int MASTER_SECTOR_ID_IN_HEADER_LENGTH = 436;
 
+	private BytesBlock headerBlock;
+
 	private byte[] uid = null;
 	private byte[] revision = null;
 	private byte[] version = null;
@@ -75,65 +79,50 @@ public class Header {
 	private int noSSAT = 0; // no short-stream allocation table
 	private int firstMSATId = 0; // first sector id of the master sector allocation table id
 	private int noMSAT = 0; // no master sector allocation table
-	private byte[] msatBytes = null;
-	private byte[] bytes = null;
+	private BytesBlock msatBlock;
 
-	public Header(byte[] bytes) throws IOException {
+	public Header(BytesHandler bytesHandler, BytesBlock headerBlock) throws IOException {
+		this.headerBlock = headerBlock;
+
 		// check compound file format identifier
-		byte[] compoundDocIdentifier = ByteHandler.part(bytes, COMPOUND_DOC_IDENTIFIER_OFFSET,
+		byte[] compoundDocIdentifier = headerBlock.readBytes(COMPOUND_DOC_IDENTIFIER_OFFSET,
 				COMPOUND_DOC_IDENTIFIER_LENGTH);
-		if (ByteHandler.compareBytes(COMPOUND_DOC_IDENTIFIER, compoundDocIdentifier) == false) {
+		if (BytesUtil.compareBytes(COMPOUND_DOC_IDENTIFIER, compoundDocIdentifier) == false) {
 			throw new IOException("Invalid file format. Invalid identifier for compound file");
 		}
-
-		// check endian type
-		byte[] endian = ByteHandler.part(bytes, ENDIAN_OFFSET, ENDIAN_LENGTH);
-		if (ByteHandler.compareBytes(BIG_ENDIAN, endian) == true) {
+		byte[] endian = headerBlock.readBytes(ENDIAN_OFFSET, ENDIAN_LENGTH);
+		if (BytesUtil.compareBytes(BIG_ENDIAN, endian) == true) {
 			endianType = ByteOrder.BIG_ENDIAN;
 			charset = StandardCharsets.UTF_16BE;
-		} else if (ByteHandler.compareBytes(LITTLE_ENDIAN, endian) == true) {
+		} else if (BytesUtil.compareBytes(LITTLE_ENDIAN, endian) == true) {
 			endianType = ByteOrder.LITTLE_ENDIAN;
 			charset = StandardCharsets.UTF_16LE;
 		} else {
 			throw new IOException("Invalid file format. Invalid endian type definition.");
 		}
+		bytesHandler.setCharset(charset);
+		bytesHandler.setEndianType(endianType);
 
-		this.bytes = bytes;
+		uid = headerBlock.readBytes(UID_OFFSET, UID_LENGTH);
+		revision = headerBlock.readBytes(REVISION_NUM_OFFSET, REVISION_NUM_LENGTH);
+		version = headerBlock.readBytes(VERSION_NUM_OFFSET, VERSION_NUM_LENGTH);
 
-		uid = ByteHandler.part(bytes, UID_OFFSET, UID_LENGTH);
-		revision = ByteHandler.part(bytes, REVISION_NUM_OFFSET, REVISION_NUM_LENGTH);
-		version = ByteHandler.part(bytes, VERSION_NUM_OFFSET, VERSION_NUM_LENGTH);
+		int sizeOfSectorRaw = headerBlock.readInt(SECTOR_SIZE_OFFSET, SECTOR_SIZE_LENGTH);
+		sizeOfSector = (int) Math.pow(2, sizeOfSectorRaw);
 
-		byte[] sizeOfSectorRaw = ByteHandler.part(bytes, SECTOR_SIZE_OFFSET, SECTOR_SIZE_LENGTH);
-		sizeOfSector = (int) Math.pow(2, ByteHandler.toInteger(sizeOfSectorRaw, endianType));
+		int sizeOfShortSectorRaw = headerBlock.readInt(SHORT_STREAM_SIZE_OFFSET, SHORT_STREAM_SIZE_LENGTH);
+		sizeOfShortStream = (int) Math.pow(2, sizeOfShortSectorRaw);
 
-		byte[] sizeOfShortSectorRaw = ByteHandler.part(bytes, SHORT_STREAM_SIZE_OFFSET, SHORT_STREAM_SIZE_LENGTH);
-		sizeOfShortStream = (int) Math.pow(2, ByteHandler.toInteger(sizeOfShortSectorRaw, endianType));
-
-		byte[] noSATRaw = ByteHandler.part(bytes, NO_SAT_OFFSET, NO_SAT_LENGTH);
-		noSAT = ByteHandler.toInteger(noSATRaw, endianType);
-
-		byte[] firstDirectoryStreamSectorIdRaw = ByteHandler.part(bytes, FIRST_DIRECTORY_STREAM_ID_OFFSET,
-				Sector.ID_LENGTH);
-		firstDirectoryStreamSectorId = ByteHandler.toInteger(firstDirectoryStreamSectorIdRaw, endianType);
-
-		byte[] minSizeOfStandardStreamRaw = ByteHandler.part(bytes, MIN_SIZE_OF_STANDARD_STREAM_OFFSET,
+		noSAT = headerBlock.readInt(NO_SAT_OFFSET, NO_SAT_LENGTH);
+		firstDirectoryStreamSectorId = headerBlock.readInt(FIRST_DIRECTORY_STREAM_ID_OFFSET, Sector.ID_LENGTH);
+		minSizeOfStandardStream = headerBlock.readInt(MIN_SIZE_OF_STANDARD_STREAM_OFFSET,
 				MIN_SIZE_OF_STANDARD_STREAM_LENGTH);
-		minSizeOfStandardStream = ByteHandler.toInteger(minSizeOfStandardStreamRaw, endianType);
+		firstSSATId = headerBlock.readInt(FIRST_SSAT_ID_OFFSET, Sector.ID_LENGTH);
+		noSSAT = headerBlock.readInt(NO_SSAT_OFFSET, NO_SSAT_LENGTH);
+		firstMSATId = headerBlock.readInt(FIRST_MSAT_ID_OFFSET, Sector.ID_LENGTH);
+		noMSAT = headerBlock.readInt(NO_MSAT_OFFSET, NO_MSAT_LENGTH);
 
-		byte[] firstSSATIdRaw = ByteHandler.part(bytes, FIRST_SSAT_ID_OFFSET, Sector.ID_LENGTH);
-		firstSSATId = ByteHandler.toInteger(firstSSATIdRaw, endianType);
-
-		byte[] noSSATRaw = ByteHandler.part(bytes, NO_SSAT_OFFSET, NO_SSAT_LENGTH);
-		noSSAT = ByteHandler.toInteger(noSSATRaw, endianType);
-
-		byte[] firstMSATIdRaw = ByteHandler.part(bytes, FIRST_MSAT_ID_OFFSET, Sector.ID_LENGTH);
-		firstMSATId = ByteHandler.toInteger(firstMSATIdRaw, endianType);
-
-		byte[] noMSATRaw = ByteHandler.part(bytes, NO_MSAT_OFFSET, NO_MSAT_LENGTH);
-		noMSAT = ByteHandler.toInteger(noMSATRaw, endianType);
-
-		msatBytes = ByteHandler.part(bytes, MASTER_SECTOR_ID_IN_HEADER_OFFSET, MASTER_SECTOR_ID_IN_HEADER_LENGTH);
+		msatBlock = headerBlock.subBlock(MASTER_SECTOR_ID_IN_HEADER_OFFSET, MASTER_SECTOR_ID_IN_HEADER_LENGTH);
 	}
 
 	public byte[] getUid() {
@@ -192,12 +181,7 @@ public class Header {
 		return noMSAT;
 	}
 
-	public byte[] getMsatBytes() {
-		return msatBytes;
+	public BytesBlock getMSATBlock() {
+		return msatBlock;
 	}
-
-	public byte[] getBytes() {
-		return bytes;
-	}
-
 }

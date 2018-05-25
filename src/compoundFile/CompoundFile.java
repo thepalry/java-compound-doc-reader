@@ -4,16 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
 import compoundFile.component.directory.DirectoryEntryTable;
-import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.component.shortStream.ShortStreamTable;
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
+import compoundFile.material.BytesHandler;
 
 /*
 	Handler for Microsoft Compound File Binary Format(Microsoft Compound Document File Format, CFBF)
@@ -25,6 +23,9 @@ import compoundFile.util.ByteHandler;
 */
 
 public class CompoundFile {
+	// physical form itself
+	private BytesHandler bytesHandler = null;
+
 	// header
 	private Header header = null;
 
@@ -43,39 +44,36 @@ public class CompoundFile {
 		fis.read(bytes);
 		fis.close();
 
+		bytesHandler = new BytesHandler(bytes);
+
 		// header
-		byte[] headerBytes = ByteHandler.part(bytes, 0, Header.SIZE);
-		header = new Header(headerBytes);
-		ByteOrder endianType = header.getEndianType();
-		Charset charset = header.getCharset();
+		BytesBlock headerBlock = new BytesBlock(0, Header.SIZE);
+		header = new Header(bytesHandler, headerBlock);
+		// header 중에서도 top level info (endian type 같은) 거 먼저 뽑고 다음 bytes handler에 지정한다음
+		// 나머지 뽑는 거로 분리
 
 		// sectorTable
-		byte[] sectorBytes = ByteHandler.part(bytes, Header.SIZE, bytes.length - Header.SIZE);
-		byte[] msatBytes = header.getMsatBytes();
+		BytesBlock sectorBlock = new BytesBlock(Header.SIZE, bytes.length - Header.SIZE);
+		BytesBlock msatBytes = header.getMSATBlock();
 		int sizeOfSector = header.getSizeOfSector();
-		sectorTable = new SectorTable(msatBytes, sectorBytes, sizeOfSector, endianType);
+		sectorTable = new SectorTable(msatBytes, sectorBlock, sizeOfSector);
 
 		// directory
 		int firstDirectoryStreamSectorID = header.getFirstDirectoryStreamSectorId();
-		directoryEntryTable = new DirectoryEntryTable(sectorTable, firstDirectoryStreamSectorID, sizeOfSector,
-				endianType, charset);
+		directoryEntryTable = new DirectoryEntryTable(sectorTable, firstDirectoryStreamSectorID);
 
 		// shortStreamTable
 		DirectoryEntry rootStorage = directoryEntryTable.get(DirectoryEntryTable.ROOT_ENTRY);
 		int firstShortStreamSectorID = rootStorage.getFirstSectorID();
 		int sizeOfShortStream = header.getSizeOfShortStream();
 		int firstSSATID = header.getFirstSSATId();
-		shortStreamTable = new ShortStreamTable(sectorTable, firstShortStreamSectorID, sizeOfShortStream, firstSSATID,
-				endianType);
+		shortStreamTable = new ShortStreamTable(sectorTable, firstShortStreamSectorID, sizeOfShortStream, firstSSATID);
 	}
 
 	public void write(File file) throws IOException {
 		FileOutputStream fos = new FileOutputStream(file);
 
-		fos.write(header.getBytes());
-		for (Sector sector : sectorTable) {
-			fos.write(sector.getBytes());
-		}
+		fos.write(bytesHandler.readBytes(0, bytesHandler.getLength()));
 		fos.flush();
 
 		fos.close();

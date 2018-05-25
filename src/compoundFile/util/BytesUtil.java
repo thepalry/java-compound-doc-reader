@@ -11,7 +11,8 @@ import java.util.List;
 	Common method for handling byte array of Compound File.
 */
 
-public class ByteHandler {
+public class BytesUtil {
+
 	public static List<Integer> toIntegerList(byte[] bytes, int splitSize, ByteOrder endianType) {
 		List<Integer> intList = new ArrayList<Integer>();
 		for (int i = 0; i < bytes.length / splitSize; i++) {
@@ -34,16 +35,9 @@ public class ByteHandler {
 
 	public static int toInteger(byte[] bytes, ByteOrder endianType) {
 		if (bytes.length < Integer.BYTES) {
-			return (int) toShort(bytes, endianType);
+			return (int) ByteBuffer.wrap(bytes).order(endianType).getShort();
 		}
 		return ByteBuffer.wrap(bytes).order(endianType).getInt();
-	}
-
-	public static short toShort(byte[] bytes, ByteOrder endianType) {
-		if(bytes.length < Short.BYTES) {
-			return (short) bytes[0]; 
-		}
-		return ByteBuffer.wrap(bytes).order(endianType).getShort();
 	}
 
 	public static byte[] part(byte[] bytes, int offset, int length) {

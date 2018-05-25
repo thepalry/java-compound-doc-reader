@@ -1,13 +1,11 @@
 package compoundFile.component.directory;
 
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
-
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.component.shortStream.ShortStream;
 import compoundFile.component.shortStream.ShortStreamTable;
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
+import compoundFile.util.BytesUtil;
 import compoundFile.util.TimeStamp;
 
 public class DirectoryEntry {
@@ -52,47 +50,34 @@ public class DirectoryEntry {
 	private int firstSectorID;
 	private int totalStreamSize;
 
-	public DirectoryEntry(byte[] bytes, ByteOrder endianType, Charset charset) {
-
-		byte[] nameAreaRaw = ByteHandler.part(bytes, NAME_AREA_OFFSET, NAME_AREA_LENGTH);
-		nameLength = ByteHandler.toInteger(nameAreaRaw, endianType);
+	public DirectoryEntry(BytesBlock entryBlock) {
+		nameLength = entryBlock.readInt(NAME_AREA_OFFSET, NAME_AREA_LENGTH);
 
 		if (nameLength > 0) {
-			byte[] nameRaw = ByteHandler.part(bytes, NAME_OFFSET, NAME_LENGTH);
 			// remove trailing zero
-			name = ByteHandler.toString(nameRaw, charset).substring(0, nameLength / Character.BYTES - 1);
+			name = entryBlock.readString(NAME_OFFSET, NAME_LENGTH).substring(0, nameLength / Character.BYTES - 1);
 		}
 
-		byte[] typeRaw = ByteHandler.part(bytes, TYPE_OFFSET, TYPE_LENGTH);
-		int typeInt = ByteHandler.toInteger(typeRaw, endianType);
+		int typeInt = entryBlock.readInt(TYPE_OFFSET, TYPE_LENGTH);
 		type = DirectoryEntryType.valueOf(typeInt);
 
-		byte[] colorRaw = ByteHandler.part(bytes, COLOR_OFFSET, COLOR_LENGTH);
-		color = ByteHandler.toInteger(colorRaw, endianType);
+		color = entryBlock.readInt(COLOR_OFFSET, COLOR_LENGTH);
 
-		byte[] leftChildDirIDRaw = ByteHandler.part(bytes, LEFT_CHILD_ID_OFFSET, ID_LENGTH);
-		leftChildDirID = ByteHandler.toInteger(leftChildDirIDRaw, endianType);
+		leftChildDirID = entryBlock.readInt(LEFT_CHILD_ID_OFFSET, ID_LENGTH);
+		rightChildDirID = entryBlock.readInt(RIGHT_CHILD_ID_OFFSET, ID_LENGTH);
+		rootDirID = entryBlock.readInt(ROOT_ID_OFFSET, ID_LENGTH);
 
-		byte[] rightChildDirIDRaw = ByteHandler.part(bytes, RIGHT_CHILD_ID_OFFSET, ID_LENGTH);
-		rightChildDirID = ByteHandler.toInteger(rightChildDirIDRaw, endianType);
+		uniqueID = entryBlock.readBytes(UNIQUE_ID_OFFSET, UNIQUE_ID_LENGTH);
+		userFlags = entryBlock.readBytes(USER_FLAGS_OFFSET, USER_FLAGS_LENGTH);
 
-		byte[] rootDirIDRaw = ByteHandler.part(bytes, ROOT_ID_OFFSET, ID_LENGTH);
-		rootDirID = ByteHandler.toInteger(rootDirIDRaw, endianType);
+		long createdTimeLong = entryBlock.readLong(CREATED_TIME_STAMP_OFFSET, TIMESTAMP_LENGTH);
+		createdTime = new TimeStamp(createdTimeLong);
 
-		uniqueID = ByteHandler.part(bytes, UNIQUE_ID_OFFSET, UNIQUE_ID_LENGTH);
-		userFlags = ByteHandler.part(bytes, USER_FLAGS_OFFSET, USER_FLAGS_LENGTH);
+		long modifiedTimeLong = entryBlock.readLong(LAST_MODIFIED_TIME_STAMP_OFFSET, TIMESTAMP_LENGTH);
+		modifiedTime = new TimeStamp(modifiedTimeLong);
 
-		byte[] createdTimeRaw = ByteHandler.part(bytes, CREATED_TIME_STAMP_OFFSET, TIMESTAMP_LENGTH);
-		createdTime = new TimeStamp(ByteHandler.toLong(createdTimeRaw, endianType));
-
-		byte[] modifiedTimeRaw = ByteHandler.part(bytes, LAST_MODIFIED_TIME_STAMP_OFFSET, TIMESTAMP_LENGTH);
-		modifiedTime = new TimeStamp(ByteHandler.toLong(modifiedTimeRaw, endianType));
-
-		byte[] firstSectorIDRaw = ByteHandler.part(bytes, FIRST_SECTOR_OFFSET, FIRST_SECTOR_LENGTH);
-		firstSectorID = ByteHandler.toInteger(firstSectorIDRaw, endianType);
-
-		byte[] totalStreamSizeRaw = ByteHandler.part(bytes, TOTAL_STREAM_SIZE_OFFSET, TOTAL_STREAM_SIZE_LENGTH);
-		totalStreamSize = ByteHandler.toInteger(totalStreamSizeRaw, endianType);
+		firstSectorID = entryBlock.readInt(FIRST_SECTOR_OFFSET, FIRST_SECTOR_LENGTH);
+		totalStreamSize = entryBlock.readInt(TOTAL_STREAM_SIZE_OFFSET, TOTAL_STREAM_SIZE_LENGTH);
 	}
 
 	public byte[] getData(SectorTable sectorTable, ShortStreamTable shortStreamTable, int minSizeOfStandardStream) {
@@ -100,13 +85,13 @@ public class DirectoryEntry {
 		if (totalStreamSize >= minSizeOfStandardStream) {
 			Sector sector = sectorTable.get(firstSectorID);
 			while (sector != null) {
-				data = ByteHandler.merge(data, sector.getBytes());
+				data = BytesUtil.merge(data, sector.getBlock().readBytes());
 				sector = sectorTable.getNext(sector);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
 			while (shortStream != null) {
-				data = ByteHandler.merge(data, shortStream.getBytes());
+				data = BytesUtil.merge(data, shortStream.getBlock().readBytes());
 				shortStream = shortStreamTable.getNext(shortStream);
 			}
 		}
@@ -117,18 +102,18 @@ public class DirectoryEntry {
 			byte[] setData) {
 		if (totalStreamSize >= minSizeOfStandardStream) {
 			Sector sector = sectorTable.get(firstSectorID);
-			int sectorSize = sector.getBytes().length;
+			int sectorSize = sectorTable.getSizeOfSector();
 			for (int i = 0; i < (int) Math.ceil(setData.length / sectorSize); i++) {
-				byte[] newData = ByteHandler.part(setData, i * sectorSize, sectorSize);
-				sector.setBytes(newData);
+				byte[] newData = BytesUtil.part(setData, i * sectorSize, sectorSize);
+				//sector.setBytes(newData);
 				sector = sectorTable.getNext(sector);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
-			int shortStreamSize = shortStream.getBytes().length;
+			int shortStreamSize = shortStreamTable.getSizeOfShortStream();
 			for (int i = 0; i < (int) Math.ceil(setData.length / shortStreamSize); i++) {
-				byte[] newData = ByteHandler.part(setData, i * shortStreamSize, shortStreamSize);
-				shortStream.setBytes(newData);
+				byte[] newData = BytesUtil.part(setData, i * shortStreamSize, shortStreamSize);
+				//shortStream.setBytes(newData);
 				shortStream = shortStreamTable.getNext(shortStream);
 			}
 		}

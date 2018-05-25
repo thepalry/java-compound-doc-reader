@@ -1,32 +1,22 @@
 package compoundFile.component.shortStream;
 
-import compoundFile.component.sector.Sector;
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
 
 public class ShortStream {
-	private static int SIZE = 64;
-
 	private int id;
-	private Sector storedSector;
-	private int storedIndex;
+	private BytesBlock block;
 
-	public ShortStream(int id, Sector storedSector, int index) {
+	public ShortStream(int id, BytesBlock block) {
 		this.id = id;
-		this.storedSector = storedSector;
-		this.storedIndex = index;
-	}
-
-	public void setBytes(byte[] bytes) {
-		byte[] sectorBytes = storedSector.getBytes();
-		System.arraycopy(bytes, 0, sectorBytes, storedIndex * SIZE, SIZE);
-	}
-
-	public byte[] getBytes() {
-		return ByteHandler.part(storedSector.getBytes(), storedIndex * SIZE, SIZE);
+		this.block = block;
 	}
 
 	public int getID() {
 		return id;
+	}
+
+	public BytesBlock getBlock() {
+		return block;
 	}
 
 }

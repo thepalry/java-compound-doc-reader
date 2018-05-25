@@ -1,6 +1,5 @@
 package compoundFile.component.sector;
 
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -8,37 +7,40 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import compoundFile.util.ByteHandler;
+import compoundFile.material.BytesBlock;
 
 public class SectorTable implements Iterable<Sector> {
+	private List<Sector> msat = new ArrayList<Sector>();
 	private SAT sat = null;
 
 	private List<Sector> sectorList = new LinkedList<Sector>();
 	private Map<Integer, Sector> sectorMap = new HashMap<Integer, Sector>();
 
-	private List<Sector> msat = new ArrayList<Sector>();
-
 	private int size;
+	private int sizeOfSector;
 
-	public SectorTable(byte[] msatBytes, byte[] sectorBytes, int sizeOfSector, ByteOrder endianType) {
-		for (int i = 0; i < sectorBytes.length / sizeOfSector; i++) {
-			byte[] sectorPart = ByteHandler.part(sectorBytes, sizeOfSector * i, sizeOfSector);
-			Sector sector = new Sector(i, sectorPart);
+	public SectorTable(BytesBlock msatBlock, BytesBlock sectorsBlock, int sizeOfSector) {
+		for (int i = 0; i < sectorsBlock.getLength() / sizeOfSector; i++) {
+			BytesBlock sectorBlock = sectorsBlock.subBlock(sizeOfSector * i, sizeOfSector);
+			Sector sector = new Sector(i, sectorBlock);
 			sectorMap.put(i, sector);
 			sectorList.add(sector);
 		}
 		size = sectorList.size();
+		this.sizeOfSector = sizeOfSector;
 
-		msat = buildMSAT(msatBytes, endianType);
+		msat = buildMSAT(msatBlock);
 
-		sat = new SAT(msat, endianType);
+		sat = new SAT(msat);
 	}
 
-	private List<Sector> buildMSAT(byte[] msatBytes, ByteOrder endianType) {
-		Sector sector = new Sector(-1, msatBytes);
+	private List<Sector> buildMSAT(BytesBlock msatBlock) {
+		Sector sector = new Sector(-1, msatBlock);
 		List<Sector> satSectors = new ArrayList<Sector>();
 		while (sector != null) {
-			List<Integer> satSectorIDs = ByteHandler.toIntegerList(sector.getBytes(), Sector.ID_LENGTH, endianType);
+			BytesBlock sectorBlock = sector.getBlock();
+			List<Integer> satSectorIDs = sectorBlock.readIntList(Sector.ID_LENGTH);
+			
 			int nextMsatSectorID = satSectorIDs.remove(satSectorIDs.size() - 1);
 			for (int satSectorID : satSectorIDs) {
 				if (Sector.isSpecialID(satSectorID)) {
@@ -65,6 +67,10 @@ public class SectorTable implements Iterable<Sector> {
 
 	public int size() {
 		return size;
+	}
+
+	public int getSizeOfSector() {
+		return sizeOfSector;
 	}
 
 	@Override
