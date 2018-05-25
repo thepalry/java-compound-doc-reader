@@ -46,7 +46,6 @@ public class CompoundFile {
 		byte[] headerBytes = ByteHandler.part(bytes, 0, Header.SIZE);
 		header = new Header(headerBytes);
 
-		// sector structure
 		// sectorTable
 		byte[] sectorBytes = ByteHandler.part(bytes, Header.SIZE, bytes.length - Header.SIZE);
 		sectorTable = new SectorTable(sectorBytes, header.getSizeOfSector(), header.getEndianType(),
@@ -56,7 +55,6 @@ public class CompoundFile {
 		directoryEntryTable = new DirectoryEntryTable(sectorTable, header.getFirstDirectoryStreamSectorId(),
 				header.getSizeOfSector(), header.getEndianType(), header.getCharset());
 
-		// short stream structure
 		// shortStreamTable
 		DirectoryEntry rootStorage = directoryEntryTable.get("Root Entry");
 		shortStreamTable = new ShortStreamTable(sectorTable, rootStorage.getFirstSectorID(),

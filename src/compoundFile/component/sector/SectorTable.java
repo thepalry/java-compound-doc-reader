@@ -1,23 +1,24 @@
 package compoundFile.component.sector;
 
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import compoundFile.component.sat.MSAT;
 import compoundFile.component.sat.SAT;
 import compoundFile.util.ByteHandler;
 
 public class SectorTable implements Iterable<Sector> {
-	private MSAT msat = null;
 	private SAT sat = null;
-	
+
 	private List<Sector> sectorList = new LinkedList<Sector>();
 	private Map<Integer, Sector> sectorMap = new HashMap<Integer, Sector>();
-	
+
+	private List<Sector> msat = new ArrayList<Sector>();
+
 	private int size;
 
 	public SectorTable(byte[] sectorBytes, int sizeOfSector, ByteOrder endianType, byte[] msatBytes) {
@@ -28,19 +29,37 @@ public class SectorTable implements Iterable<Sector> {
 			sectorList.add(sector);
 		}
 		size = sectorList.size();
-		
-		msat = new MSAT(this, msatBytes, endianType);
+
+		msat = buildMSAT(msatBytes, endianType);
+
 		sat = new SAT(msat, endianType);
+	}
+
+	private List<Sector> buildMSAT(byte[] msatBytes, ByteOrder endianType) {
+		Sector sector = new Sector(-1, msatBytes);
+		List<Sector> satSectors = new ArrayList<Sector>();
+		while (sector != null) {
+			List<Integer> satSectorIDs = ByteHandler.toIntegerList(sector.getBytes(), Sector.ID_LENGTH, endianType);
+			int nextMsatSectorID = satSectorIDs.remove(satSectorIDs.size() - 1);
+			for (int satSectorID : satSectorIDs) {
+				if (Sector.isSpecialID(satSectorID)) {
+					break;
+				}
+				satSectors.add(get(satSectorID));
+			}
+			sector = this.get(nextMsatSectorID);
+		}
+		return satSectors;
 	}
 
 	public Sector get(int id) {
 		return sectorMap.get(id);
 	}
-	
+
 	public Sector getNext(int id) {
 		return sectorMap.get(sat.nextID(id));
 	}
-	
+
 	public Sector getNext(Sector sector) {
 		return getNext(sector.getID());
 	}

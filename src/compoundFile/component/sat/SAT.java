@@ -11,8 +11,7 @@ import compoundFile.util.ByteHandler;
 public class SAT {
 	private List<Integer> sectorIdAllocationTable = new ArrayList<Integer>();
 
-	public SAT(MSAT msat, ByteOrder endianType) {
-		List<Sector> satSectors = msat.getSatSectors();
+	public SAT(List<Sector> satSectors, ByteOrder endianType) {
 		for (Sector satSector : satSectors) {
 			List<Integer> idAllocation = ByteHandler.toIntegerList(satSector.getBytes(), Sector.ID_LENGTH, endianType);
 			sectorIdAllocationTable.addAll(idAllocation);
