@@ -10,6 +10,8 @@ import compoundFile.component.sector.SectorTable;
 import compoundFile.util.ByteHandler;
 
 public class DirectoryEntryTable {
+	public static final String ROOT_ENTRY = "ROOT ENTRY";
+	
 	private Map<String, DirectoryEntry> directoryEntryMap = new HashMap<String, DirectoryEntry>();
 
 	public DirectoryEntryTable(SectorTable sectorTable, int firstDirectoryStreamSectorID, int sizeOfSector,

@@ -1,4 +1,4 @@
-package compoundFile.component.sat;
+package compoundFile.component.shortStream;
 
 import java.nio.ByteOrder;
 import java.util.ArrayList;

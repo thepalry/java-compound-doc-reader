@@ -1,10 +1,9 @@
-package compoundFile.component.sat;
+package compoundFile.component.sector;
 
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
-import compoundFile.component.sector.Sector;
 import compoundFile.util.ByteHandler;
 
 // sector allocation table

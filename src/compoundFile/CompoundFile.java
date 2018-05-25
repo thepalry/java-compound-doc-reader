@@ -4,11 +4,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
 import compoundFile.component.directory.DirectoryEntryTable;
-import compoundFile.component.sat.SSAT;
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.component.shortStream.ShortStreamTable;
@@ -45,20 +46,27 @@ public class CompoundFile {
 		// header
 		byte[] headerBytes = ByteHandler.part(bytes, 0, Header.SIZE);
 		header = new Header(headerBytes);
+		ByteOrder endianType = header.getEndianType();
+		Charset charset = header.getCharset();
 
 		// sectorTable
 		byte[] sectorBytes = ByteHandler.part(bytes, Header.SIZE, bytes.length - Header.SIZE);
-		sectorTable = new SectorTable(sectorBytes, header.getSizeOfSector(), header.getEndianType(),
-				header.getMsatBytes());
+		byte[] msatBytes = header.getMsatBytes();
+		int sizeOfSector = header.getSizeOfSector();
+		sectorTable = new SectorTable(msatBytes, sectorBytes, sizeOfSector, endianType);
 
 		// directory
-		directoryEntryTable = new DirectoryEntryTable(sectorTable, header.getFirstDirectoryStreamSectorId(),
-				header.getSizeOfSector(), header.getEndianType(), header.getCharset());
+		int firstDirectoryStreamSectorID = header.getFirstDirectoryStreamSectorId();
+		directoryEntryTable = new DirectoryEntryTable(sectorTable, firstDirectoryStreamSectorID, sizeOfSector,
+				endianType, charset);
 
 		// shortStreamTable
-		DirectoryEntry rootStorage = directoryEntryTable.get("Root Entry");
-		shortStreamTable = new ShortStreamTable(sectorTable, rootStorage.getFirstSectorID(),
-				header.getSizeOfShortStream(), header.getFirstSSATId(), header.getEndianType());
+		DirectoryEntry rootStorage = directoryEntryTable.get(DirectoryEntryTable.ROOT_ENTRY);
+		int firstShortStreamSectorID = rootStorage.getFirstSectorID();
+		int sizeOfShortStream = header.getSizeOfShortStream();
+		int firstSSATID = header.getFirstSSATId();
+		shortStreamTable = new ShortStreamTable(sectorTable, firstShortStreamSectorID, sizeOfShortStream, firstSSATID,
+				endianType);
 	}
 
 	public void write(File file) throws IOException {

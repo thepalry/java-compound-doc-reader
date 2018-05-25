@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import compoundFile.component.sat.SAT;
 import compoundFile.util.ByteHandler;
 
 public class SectorTable implements Iterable<Sector> {
@@ -21,7 +20,7 @@ public class SectorTable implements Iterable<Sector> {
 
 	private int size;
 
-	public SectorTable(byte[] sectorBytes, int sizeOfSector, ByteOrder endianType, byte[] msatBytes) {
+	public SectorTable(byte[] msatBytes, byte[] sectorBytes, int sizeOfSector, ByteOrder endianType) {
 		for (int i = 0; i < sectorBytes.length / sizeOfSector; i++) {
 			byte[] sectorPart = ByteHandler.part(sectorBytes, sizeOfSector * i, sizeOfSector);
 			Sector sector = new Sector(i, sectorPart);

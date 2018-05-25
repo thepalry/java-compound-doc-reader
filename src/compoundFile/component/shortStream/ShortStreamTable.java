@@ -4,7 +4,6 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
-import compoundFile.component.sat.SSAT;
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 
