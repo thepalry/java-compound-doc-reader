@@ -3,8 +3,6 @@ package compoundFile.component.directory;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
-import compoundFile.component.sat.SAT;
-import compoundFile.component.sat.SSAT;
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.component.shortStream.ShortStream;
@@ -97,36 +95,33 @@ public class DirectoryEntry {
 		totalStreamSize = ByteHandler.toInteger(totalStreamSizeRaw, endianType);
 	}
 
-	public byte[] getData(SectorTable sectorTable, SAT sat, ShortStreamTable shortStreamTable, SSAT ssat,
-			int minSizeOfStandardStream) {
+	public byte[] getData(SectorTable sectorTable, ShortStreamTable shortStreamTable, int minSizeOfStandardStream) {
 		byte[] data = new byte[0];
 		if (totalStreamSize >= minSizeOfStandardStream) {
 			Sector sector = sectorTable.get(firstSectorID);
 			while (sector != null) {
 				data = ByteHandler.merge(data, sector.getBytes());
-				int nextSectorId = sat.nextSectorID(sector.getID());
-				sector = sectorTable.get(nextSectorId);
+				sector = sectorTable.getNext(sector);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
 			while (shortStream != null) {
 				data = ByteHandler.merge(data, shortStream.getBytes());
-				shortStream = ssat.nextShortStream(shortStream);
+				shortStream = shortStreamTable.getNext(shortStream);
 			}
 		}
 		return data;
 	}
 
-	public void setData(SectorTable sectorTable, SAT sat, ShortStreamTable shortStreamTable, SSAT ssat,
-			int minSizeOfStandardStream, byte[] setData) {
+	public void setData(SectorTable sectorTable, ShortStreamTable shortStreamTable, int minSizeOfStandardStream,
+			byte[] setData) {
 		if (totalStreamSize >= minSizeOfStandardStream) {
 			Sector sector = sectorTable.get(firstSectorID);
 			int sectorSize = sector.getBytes().length;
 			for (int i = 0; i < (int) Math.ceil(setData.length / sectorSize); i++) {
 				byte[] newData = ByteHandler.part(setData, i * sectorSize, sectorSize);
 				sector.setBytes(newData);
-				int nextSectorId = sat.nextSectorID(sector.getID());
-				sector = sectorTable.get(nextSectorId);
+				sector = sectorTable.getNext(sector);
 			}
 		} else {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
@@ -134,7 +129,7 @@ public class DirectoryEntry {
 			for (int i = 0; i < (int) Math.ceil(setData.length / shortStreamSize); i++) {
 				byte[] newData = ByteHandler.part(setData, i * shortStreamSize, shortStreamSize);
 				shortStream.setBytes(newData);
-				shortStream = ssat.nextShortStream(shortStream);
+				shortStream = shortStreamTable.getNext(shortStream);
 			}
 		}
 	}

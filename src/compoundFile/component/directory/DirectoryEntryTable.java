@@ -5,7 +5,6 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import compoundFile.component.sat.SAT;
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.util.ByteHandler;
@@ -13,7 +12,7 @@ import compoundFile.util.ByteHandler;
 public class DirectoryEntryTable {
 	private Map<String, DirectoryEntry> directoryEntryMap = new HashMap<String, DirectoryEntry>();
 
-	public DirectoryEntryTable(SectorTable sectorTable, SAT sat, int firstDirectoryStreamSectorID, int sizeOfSector,
+	public DirectoryEntryTable(SectorTable sectorTable, int firstDirectoryStreamSectorID, int sizeOfSector,
 			ByteOrder endianType, Charset charset) {
 		Sector directorySector = sectorTable.get(firstDirectoryStreamSectorID);
 		while (directorySector != null) {
@@ -23,8 +22,7 @@ public class DirectoryEntryTable {
 				DirectoryEntry de = new DirectoryEntry(directoryEntryRaw, endianType, charset);
 				directoryEntryMap.put(de.getName(), de);
 			}
-			int nextSectorID = sat.nextSectorID(directorySector.getID());
-			directorySector = sectorTable.get(nextSectorID);
+			directorySector = sectorTable.getNext(directorySector);
 		}
 	}
 

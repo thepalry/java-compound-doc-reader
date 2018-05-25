@@ -8,8 +8,6 @@ import java.io.IOException;
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
 import compoundFile.component.directory.DirectoryEntryTable;
-import compoundFile.component.sat.MSAT;
-import compoundFile.component.sat.SAT;
 import compoundFile.component.sat.SSAT;
 import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
@@ -31,11 +29,8 @@ public class CompoundFile {
 
 	// sector
 	private SectorTable sectorTable = null;
-	private MSAT msat = null;
-	private SAT sat = null;
 
 	// stream
-	private SSAT ssat = null;
 	private ShortStreamTable shortStreamTable = null;
 
 	// directory
@@ -54,24 +49,18 @@ public class CompoundFile {
 		// sector structure
 		// sectorTable
 		byte[] sectorBytes = ByteHandler.part(bytes, Header.SIZE, bytes.length - Header.SIZE);
-		sectorTable = new SectorTable(sectorBytes, header.getSizeOfSector());
-
-		// sectorAllocationTable
-		msat = new MSAT(sectorTable, header.getMsatBytes(), header.getEndianType());
-		sat = new SAT(msat, header.getEndianType());
+		sectorTable = new SectorTable(sectorBytes, header.getSizeOfSector(), header.getEndianType(),
+				header.getMsatBytes());
 
 		// directory
-		directoryEntryTable = new DirectoryEntryTable(sectorTable, sat, header.getFirstDirectoryStreamSectorId(),
+		directoryEntryTable = new DirectoryEntryTable(sectorTable, header.getFirstDirectoryStreamSectorId(),
 				header.getSizeOfSector(), header.getEndianType(), header.getCharset());
 
 		// short stream structure
 		// shortStreamTable
 		DirectoryEntry rootStorage = directoryEntryTable.get("Root Entry");
-		shortStreamTable = new ShortStreamTable(sectorTable, sat, rootStorage.getFirstSectorID(),
-				header.getSizeOfShortStream());
-
-		// shortStreamAllocationTable
-		ssat = new SSAT(shortStreamTable, header.getFirstSSATId(), sectorTable, sat, header.getEndianType());
+		shortStreamTable = new ShortStreamTable(sectorTable, rootStorage.getFirstSectorID(),
+				header.getSizeOfShortStream(), header.getFirstSSATId(), header.getEndianType());
 	}
 
 	public void write(File file) throws IOException {

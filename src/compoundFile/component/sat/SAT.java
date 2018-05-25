@@ -19,7 +19,7 @@ public class SAT {
 		}
 	}
 
-	public int nextSectorID(int id) {
+	public int nextID(int id) {
 		return sectorIdAllocationTable.get(id);
 	}
 }
