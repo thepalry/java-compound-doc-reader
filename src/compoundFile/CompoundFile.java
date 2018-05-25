@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
@@ -43,11 +41,6 @@ public class CompoundFile {
 	// directory
 	private DirectoryEntryTable directoryEntryTable = null;
 
-	// basic info of file
-	private byte[] uid = null;
-	private byte[] revision = null;
-	private byte[] version = null;
-
 	public CompoundFile(File file) throws IOException {
 		FileInputStream fis = new FileInputStream(file);
 		byte[] bytes = new byte[fis.available()];
@@ -57,9 +50,6 @@ public class CompoundFile {
 		// header
 		byte[] headerBytes = ByteHandler.part(bytes, 0, Header.SIZE);
 		header = new Header(headerBytes);
-		this.uid = header.getUid();
-		this.revision = header.getRevision();
-		this.version = header.getVersion();
 
 		// sector structure
 		// sectorTable
@@ -97,14 +87,14 @@ public class CompoundFile {
 	}
 
 	public byte[] getUid() {
-		return uid;
+		return header.getUid();
 	}
 
 	public byte[] getRevision() {
-		return revision;
+		return header.getRevision();
 	}
 
 	public byte[] getVersion() {
-		return version;
+		return header.getVersion();
 	}
 }
