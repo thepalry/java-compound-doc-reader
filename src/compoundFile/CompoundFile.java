@@ -47,8 +47,6 @@ public class CompoundFile {
 	private byte[] uid = null;
 	private byte[] revision = null;
 	private byte[] version = null;
-	private ByteOrder endianType = null;
-	private Charset charset = null;
 
 	public CompoundFile(File file) throws IOException {
 		FileInputStream fis = new FileInputStream(file);
@@ -62,8 +60,6 @@ public class CompoundFile {
 		this.uid = header.getUid();
 		this.revision = header.getRevision();
 		this.version = header.getVersion();
-		this.endianType = header.getEndianType();
-		this.charset = header.getCharset();
 
 		// sector structure
 		// sectorTable
@@ -71,12 +67,12 @@ public class CompoundFile {
 		sectorTable = new SectorTable(sectorBytes, header.getSizeOfSector());
 
 		// sectorAllocationTable
-		msat = new MSAT(sectorTable, header.getMsatBytes(), endianType);
-		sat = new SAT(sectorTable, msat, endianType);
+		msat = new MSAT(sectorTable, header.getMsatBytes(), header.getEndianType());
+		sat = new SAT(sectorTable, msat, header.getEndianType());
 
 		// directory
 		directoryEntryTable = new DirectoryEntryTable(sectorTable, sat, header.getFirstDirectoryStreamSectorId(),
-				header.getSizeOfSector(), endianType, charset);
+				header.getSizeOfSector(), header.getEndianType(), header.getCharset());
 
 		// short stream structure
 		// shortStreamTable
@@ -85,7 +81,7 @@ public class CompoundFile {
 				header.getSizeOfShortStream());
 
 		// shortStreamAllocationTable
-		ssat = new SSAT(shortStreamTable, header.getFirstSSATId(), sectorTable, sat, endianType);
+		ssat = new SSAT(shortStreamTable, header.getFirstSSATId(), sectorTable, sat, header.getEndianType());
 	}
 
 	public void write(File file) throws IOException {
@@ -110,13 +106,5 @@ public class CompoundFile {
 
 	public byte[] getVersion() {
 		return version;
-	}
-
-	public ByteOrder getEndianType() {
-		return endianType;
-	}
-
-	public Charset getCharset() {
-		return charset;
 	}
 }
