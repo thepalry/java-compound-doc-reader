@@ -2,13 +2,9 @@ package compoundFile.component;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 import compoundFile.component.sector.Sector;
 import compoundFile.material.BytesBlock;
-import compoundFile.material.BytesHandler;
-import compoundFile.util.BytesUtil;
 
 /* 
 Header Structure of Compound File
@@ -18,10 +14,9 @@ public class Header {
 	public static final int SIZE = 512;
 
 	// identifier of special values
-	private static final byte[] COMPOUND_DOC_IDENTIFIER = { -48, -49, 17, -32, -95, -79, 26, -31 }; // D0 CF 11 E0 A1 B1
-																									// 1A E1
-	private static final byte[] BIG_ENDIAN = { -1, -2 };
-	private static final byte[] LITTLE_ENDIAN = { -2, -1 };
+	private static final long COMPOUND_DOC_IDENTIFIER = -3400479537158350111l; // 0xD0CF11E0A1B11AE1
+	private static final int BIG_ENDIAN = -2; // 0xFFFE
+	private static final int LITTLE_ENDIAN = -257; // 0xFEFF
 
 	private static final int COMPOUND_DOC_IDENTIFIER_OFFSET = 0;
 	private static final int COMPOUND_DOC_IDENTIFIER_LENGTH = 8;
@@ -69,7 +64,6 @@ public class Header {
 	private byte[] revision = null;
 	private byte[] version = null;
 	private ByteOrder endianType = null;
-	private Charset charset = null;
 	private int sizeOfSector = 0;
 	private int sizeOfShortStream = 0;
 	private int noSAT = 0; // no Sector allocation table
@@ -81,27 +75,10 @@ public class Header {
 	private int noMSAT = 0; // no master sector allocation table
 	private BytesBlock msatBlock;
 
-	public Header(BytesHandler bytesHandler, BytesBlock headerBlock) throws IOException {
+	public Header(BytesBlock headerBlock) throws IOException {
 		this.headerBlock = headerBlock;
-
-		// check compound file format identifier
-		byte[] compoundDocIdentifier = headerBlock.readBytes(COMPOUND_DOC_IDENTIFIER_OFFSET,
-				COMPOUND_DOC_IDENTIFIER_LENGTH);
-		if (BytesUtil.compareBytes(COMPOUND_DOC_IDENTIFIER, compoundDocIdentifier) == false) {
-			throw new IOException("Invalid file format. Invalid identifier for compound file");
-		}
-		byte[] endian = headerBlock.readBytes(ENDIAN_OFFSET, ENDIAN_LENGTH);
-		if (BytesUtil.compareBytes(BIG_ENDIAN, endian) == true) {
-			endianType = ByteOrder.BIG_ENDIAN;
-			charset = StandardCharsets.UTF_16BE;
-		} else if (BytesUtil.compareBytes(LITTLE_ENDIAN, endian) == true) {
-			endianType = ByteOrder.LITTLE_ENDIAN;
-			charset = StandardCharsets.UTF_16LE;
-		} else {
-			throw new IOException("Invalid file format. Invalid endian type definition.");
-		}
-		bytesHandler.setCharset(charset);
-		bytesHandler.setEndianType(endianType);
+		
+		this.endianType = headerBlock.getEndianType();
 
 		uid = headerBlock.readBytes(UID_OFFSET, UID_LENGTH);
 		revision = headerBlock.readBytes(REVISION_NUM_OFFSET, REVISION_NUM_LENGTH);
@@ -139,10 +116,6 @@ public class Header {
 
 	public ByteOrder getEndianType() {
 		return endianType;
-	}
-
-	public Charset getCharset() {
-		return charset;
 	}
 
 	public int getSizeOfSector() {
@@ -183,5 +156,25 @@ public class Header {
 
 	public BytesBlock getMSATBlock() {
 		return msatBlock;
+	}
+
+	public static boolean isCompoundFile(BytesBlock headerBlock) {
+		long compoundDocIdentifier = headerBlock.readLong(COMPOUND_DOC_IDENTIFIER_OFFSET,
+				COMPOUND_DOC_IDENTIFIER_LENGTH);
+		return compoundDocIdentifier == COMPOUND_DOC_IDENTIFIER;
+	}
+
+	public static ByteOrder getEndianType(BytesBlock headerBlock) {
+		ByteOrder endianType = null;
+		int endian = headerBlock.readInt(ENDIAN_OFFSET, ENDIAN_LENGTH);
+		switch (endian) {
+		case BIG_ENDIAN:
+			endianType = ByteOrder.BIG_ENDIAN;
+			break;
+		case LITTLE_ENDIAN:
+			endianType = ByteOrder.LITTLE_ENDIAN;
+			break;
+		}
+		return endianType;
 	}
 }

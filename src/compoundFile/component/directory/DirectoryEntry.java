@@ -104,7 +104,7 @@ public class DirectoryEntry {
 			Sector sector = sectorTable.get(firstSectorID);
 			int sectorSize = sectorTable.getSizeOfSector();
 			for (int i = 0; i < (int) Math.ceil(setData.length / sectorSize); i++) {
-				byte[] newData = BytesUtil.part(setData, i * sectorSize, sectorSize);
+				byte[] newData = BytesUtil.slice(setData, i * sectorSize, sectorSize);
 				//sector.setBytes(newData);
 				sector = sectorTable.getNext(sector);
 			}
@@ -112,7 +112,7 @@ public class DirectoryEntry {
 			ShortStream shortStream = shortStreamTable.get(firstSectorID);
 			int shortStreamSize = shortStreamTable.getSizeOfShortStream();
 			for (int i = 0; i < (int) Math.ceil(setData.length / shortStreamSize); i++) {
-				byte[] newData = BytesUtil.part(setData, i * shortStreamSize, shortStreamSize);
+				byte[] newData = BytesUtil.slice(setData, i * shortStreamSize, shortStreamSize);
 				//shortStream.setBytes(newData);
 				shortStream = shortStreamTable.getNext(shortStream);
 			}

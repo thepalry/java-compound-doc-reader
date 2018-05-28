@@ -8,7 +8,7 @@ import compoundFile.component.sector.SectorTable;
 import compoundFile.material.BytesBlock;
 
 public class DirectoryEntryTable {
-	public static final String ROOT_ENTRY = "ROOT ENTRY";
+	public static final String ROOT_ENTRY = "Root Entry";
 
 	private Map<String, DirectoryEntry> directoryEntryMap = new HashMap<String, DirectoryEntry>();
 

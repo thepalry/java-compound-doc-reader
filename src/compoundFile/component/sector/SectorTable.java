@@ -46,7 +46,8 @@ public class SectorTable implements Iterable<Sector> {
 				if (Sector.isSpecialID(satSectorID)) {
 					break;
 				}
-				satSectors.add(get(satSectorID));
+				Sector satSector = this.get(satSectorID);
+				satSectors.add(satSector);
 			}
 			sector = this.get(nextMsatSectorID);
 		}

@@ -16,7 +16,7 @@ public class BytesUtil {
 	public static List<Integer> toIntegerList(byte[] bytes, int splitSize, ByteOrder endianType) {
 		List<Integer> intList = new ArrayList<Integer>();
 		for (int i = 0; i < bytes.length / splitSize; i++) {
-			byte[] splitedByte = part(bytes, splitSize * i, splitSize);
+			byte[] splitedByte = slice(bytes, splitSize * i, splitSize);
 			intList.add(toInteger(splitedByte, endianType));
 		}
 		return intList;
@@ -35,12 +35,19 @@ public class BytesUtil {
 
 	public static int toInteger(byte[] bytes, ByteOrder endianType) {
 		if (bytes.length < Integer.BYTES) {
-			return (int) ByteBuffer.wrap(bytes).order(endianType).getShort();
+			return (int) toShort(bytes, endianType);
 		}
 		return ByteBuffer.wrap(bytes).order(endianType).getInt();
 	}
+	
+	public static short toShort(byte[] bytes, ByteOrder endianType) {
+		if (bytes.length < Short.BYTES) {
+			return (short) bytes[0];
+		}
+		return ByteBuffer.wrap(bytes).order(endianType).getShort();
+	}
 
-	public static byte[] part(byte[] bytes, int offset, int length) {
+	public static byte[] slice(byte[] bytes, int offset, int length) {
 		return Arrays.copyOfRange(bytes, offset, offset + length);
 	}
 
@@ -50,6 +57,7 @@ public class BytesUtil {
 		return result;
 	}
 
+	/*
 	public static boolean compareBytes(byte[] a, byte[] b) {
 		if (a.length != b.length) {
 			return false;
@@ -61,6 +69,7 @@ public class BytesUtil {
 		}
 		return true;
 	}
+	*/
 
 	public static String byteToBitstring(byte b) {
 		StringBuilder sb = new StringBuilder();

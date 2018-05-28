@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteOrder;
 
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
@@ -11,7 +12,6 @@ import compoundFile.component.directory.DirectoryEntryTable;
 import compoundFile.component.sector.SectorTable;
 import compoundFile.component.shortStream.ShortStreamTable;
 import compoundFile.material.BytesBlock;
-import compoundFile.material.BytesHandler;
 
 /*
 	Handler for Microsoft Compound File Binary Format(Microsoft Compound Document File Format, CFBF)
@@ -23,8 +23,8 @@ import compoundFile.material.BytesHandler;
 */
 
 public class CompoundFile {
-	// physical form itself
-	private BytesHandler bytesHandler = null;
+	// file bytes
+	private BytesBlock totalBytes = null;
 
 	// header
 	private Header header = null;
@@ -44,16 +44,21 @@ public class CompoundFile {
 		fis.read(bytes);
 		fis.close();
 
-		bytesHandler = new BytesHandler(bytes);
+		totalBytes = new BytesBlock(bytes);
 
 		// header
-		BytesBlock headerBlock = new BytesBlock(0, Header.SIZE);
-		header = new Header(bytesHandler, headerBlock);
-		// header 중에서도 top level info (endian type 같은) 거 먼저 뽑고 다음 bytes handler에 지정한다음
-		// 나머지 뽑는 거로 분리
+		BytesBlock headerBlock = totalBytes.subBlock(0, Header.SIZE);
+		ByteOrder endianType = Header.getEndianType(headerBlock);
+		if (Header.isCompoundFile(headerBlock) == false || endianType == null) {
+			throw new IOException("Invalid Compound file format");
+		}
+		totalBytes.setEndianType(endianType);
+		headerBlock.setEndianType(endianType);
 
+		header = new Header(headerBlock);
+	
 		// sectorTable
-		BytesBlock sectorBlock = new BytesBlock(Header.SIZE, bytes.length - Header.SIZE);
+		BytesBlock sectorBlock = totalBytes.subBlock(Header.SIZE, bytes.length - Header.SIZE);
 		BytesBlock msatBytes = header.getMSATBlock();
 		int sizeOfSector = header.getSizeOfSector();
 		sectorTable = new SectorTable(msatBytes, sectorBlock, sizeOfSector);
@@ -71,12 +76,10 @@ public class CompoundFile {
 	}
 
 	public void write(File file) throws IOException {
-		FileOutputStream fos = new FileOutputStream(file);
-
-		fos.write(bytesHandler.readBytes(0, bytesHandler.getLength()));
-		fos.flush();
-
-		fos.close();
+		try (FileOutputStream fos = new FileOutputStream(file)) {
+			fos.write(totalBytes.readBytes(0, totalBytes.getLength()));
+			fos.flush();
+		}
 	}
 
 	public byte[] getUid() {
