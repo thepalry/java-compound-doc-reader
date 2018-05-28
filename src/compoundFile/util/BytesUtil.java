@@ -39,7 +39,7 @@ public class BytesUtil {
 		}
 		return ByteBuffer.wrap(bytes).order(endianType).getInt();
 	}
-	
+
 	public static short toShort(byte[] bytes, ByteOrder endianType) {
 		if (bytes.length < Short.BYTES) {
 			return (short) bytes[0];
@@ -54,45 +54,6 @@ public class BytesUtil {
 	public static byte[] merge(byte[] bArr1, byte[] bArr2) {
 		byte[] result = Arrays.copyOf(bArr1, bArr1.length + bArr2.length);
 		System.arraycopy(bArr2, 0, result, bArr1.length, bArr2.length);
-		return result;
-	}
-
-	/*
-	public static boolean compareBytes(byte[] a, byte[] b) {
-		if (a.length != b.length) {
-			return false;
-		}
-		for (int i = 0; i < a.length; i++) {
-			if (a[i] != b[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-	*/
-
-	public static String byteToBitstring(byte b) {
-		StringBuilder sb = new StringBuilder();
-		int byteToInt = b & 0xff;
-		for (int i = 0; i < Byte.SIZE; i++) {
-			sb.append(byteToInt % 2);
-			byteToInt /= 2;
-		}
-		return sb.reverse().toString();
-	}
-
-	public static Byte bitstringToByte(String bitString) {
-		Byte result = 0;
-		for (char c : bitString.toCharArray()) {
-			switch (c) {
-			case '0':
-			case '1':
-				result = (byte) (result * 2 + (int) (c - '0'));
-				break;
-			default:
-				return null;
-			}
-		}
 		return result;
 	}
 }

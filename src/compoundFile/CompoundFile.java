@@ -9,9 +9,12 @@ import java.nio.ByteOrder;
 import compoundFile.component.Header;
 import compoundFile.component.directory.DirectoryEntry;
 import compoundFile.component.directory.DirectoryEntryTable;
+import compoundFile.component.sector.Sector;
 import compoundFile.component.sector.SectorTable;
+import compoundFile.component.shortStream.ShortStream;
 import compoundFile.component.shortStream.ShortStreamTable;
 import compoundFile.material.BytesBlock;
+import compoundFile.util.BytesUtil;
 
 /*
 	Handler for Microsoft Compound File Binary Format(Microsoft Compound Document File Format, CFBF)
@@ -56,7 +59,7 @@ public class CompoundFile {
 		headerBlock.setEndianType(endianType);
 
 		header = new Header(headerBlock);
-	
+
 		// sectorTable
 		BytesBlock sectorBlock = totalBytes.subBlock(Header.SIZE, bytes.length - Header.SIZE);
 		BytesBlock msatBytes = header.getMSATBlock();
@@ -72,12 +75,59 @@ public class CompoundFile {
 		int firstShortStreamSectorID = rootStorage.getFirstSectorID();
 		int sizeOfShortStream = header.getSizeOfShortStream();
 		int firstSSATID = header.getFirstSSATId();
-		shortStreamTable = new ShortStreamTable(sectorTable, firstShortStreamSectorID, sizeOfShortStream, firstSSATID);
+		shortStreamTable = new ShortStreamTable(sectorTable, firstShortStreamSectorID, firstSSATID, sizeOfShortStream);
+
+	}
+
+	public byte[] getData(String directoryEntryName) {
+		DirectoryEntry de = directoryEntryTable.get(directoryEntryName);
+		int sizeOfDirectoryEntry = de.getSize();
+
+		int firstID = de.getFirstSectorID();
+		byte[] data = new byte[0];
+		if (sizeOfDirectoryEntry >= header.getMinSizeOfStandardStream()) {
+			Sector sector = sectorTable.get(firstID);
+			while (sector != null) {
+				data = BytesUtil.merge(data, sector.getBlock().read());
+				sector = sectorTable.getNext(sector);
+			}
+		} else {
+			ShortStream shortStream = shortStreamTable.get(firstID);
+			while (shortStream != null) {
+				data = BytesUtil.merge(data, shortStream.getBlock().read());
+				shortStream = shortStreamTable.getNext(shortStream);
+			}
+		}
+		return data;
+	}
+
+	public void setData(String directoryEntryName, byte[] setData) {
+		DirectoryEntry de = directoryEntryTable.get(directoryEntryName);
+		int sizeOfDirectoryEntry = de.getSize();
+
+		int firstID = de.getFirstSectorID();
+		if (sizeOfDirectoryEntry >= header.getMinSizeOfStandardStream()) {
+			Sector sector = sectorTable.get(firstID);
+			int sectorSize = sectorTable.getSizeOfSector();
+			for (int i = 0; i < (int) Math.ceil((double) sizeOfDirectoryEntry / sectorSize); i++) {
+				byte[] newData = BytesUtil.slice(setData, i * sectorSize, sectorSize);
+				sector.getBlock().write(newData);
+				sector = sectorTable.getNext(sector);
+			}
+		} else {
+			ShortStream shortStream = shortStreamTable.get(firstID);
+			int shortStreamSize = shortStreamTable.getSizeOfShortStream();
+			for (int i = 0; i < (int) Math.ceil((double) sizeOfDirectoryEntry / shortStreamSize); i++) {
+				byte[] newData = BytesUtil.slice(setData, i * shortStreamSize, shortStreamSize);
+				shortStream.getBlock().write(newData);
+				shortStream = shortStreamTable.getNext(shortStream);
+			}
+		}
 	}
 
 	public void write(File file) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(file)) {
-			fos.write(totalBytes.readBytes(0, totalBytes.getLength()));
+			fos.write(totalBytes.read(0, totalBytes.getLength()));
 			fos.flush();
 		}
 	}
@@ -92,5 +142,9 @@ public class CompoundFile {
 
 	public byte[] getVersion() {
 		return header.getVersion();
+	}
+
+	public DirectoryEntry getDirectoryEntry(String name) {
+		return directoryEntryTable.get(name);
 	}
 }

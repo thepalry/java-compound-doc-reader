@@ -80,9 +80,9 @@ public class Header {
 		
 		this.endianType = headerBlock.getEndianType();
 
-		uid = headerBlock.readBytes(UID_OFFSET, UID_LENGTH);
-		revision = headerBlock.readBytes(REVISION_NUM_OFFSET, REVISION_NUM_LENGTH);
-		version = headerBlock.readBytes(VERSION_NUM_OFFSET, VERSION_NUM_LENGTH);
+		uid = headerBlock.read(UID_OFFSET, UID_LENGTH);
+		revision = headerBlock.read(REVISION_NUM_OFFSET, REVISION_NUM_LENGTH);
+		version = headerBlock.read(VERSION_NUM_OFFSET, VERSION_NUM_LENGTH);
 
 		int sizeOfSectorRaw = headerBlock.readInt(SECTOR_SIZE_OFFSET, SECTOR_SIZE_LENGTH);
 		sizeOfSector = (int) Math.pow(2, sizeOfSectorRaw);

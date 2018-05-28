@@ -1,11 +1,6 @@
 package compoundFile.component.directory;
 
-import compoundFile.component.sector.Sector;
-import compoundFile.component.sector.SectorTable;
-import compoundFile.component.shortStream.ShortStream;
-import compoundFile.component.shortStream.ShortStreamTable;
 import compoundFile.material.BytesBlock;
-import compoundFile.util.BytesUtil;
 import compoundFile.util.TimeStamp;
 
 public class DirectoryEntry {
@@ -67,8 +62,8 @@ public class DirectoryEntry {
 		rightChildDirID = entryBlock.readInt(RIGHT_CHILD_ID_OFFSET, ID_LENGTH);
 		rootDirID = entryBlock.readInt(ROOT_ID_OFFSET, ID_LENGTH);
 
-		uniqueID = entryBlock.readBytes(UNIQUE_ID_OFFSET, UNIQUE_ID_LENGTH);
-		userFlags = entryBlock.readBytes(USER_FLAGS_OFFSET, USER_FLAGS_LENGTH);
+		uniqueID = entryBlock.read(UNIQUE_ID_OFFSET, UNIQUE_ID_LENGTH);
+		userFlags = entryBlock.read(USER_FLAGS_OFFSET, USER_FLAGS_LENGTH);
 
 		long createdTimeLong = entryBlock.readLong(CREATED_TIME_STAMP_OFFSET, TIMESTAMP_LENGTH);
 		createdTime = new TimeStamp(createdTimeLong);
@@ -78,45 +73,6 @@ public class DirectoryEntry {
 
 		firstSectorID = entryBlock.readInt(FIRST_SECTOR_OFFSET, FIRST_SECTOR_LENGTH);
 		totalStreamSize = entryBlock.readInt(TOTAL_STREAM_SIZE_OFFSET, TOTAL_STREAM_SIZE_LENGTH);
-	}
-
-	public byte[] getData(SectorTable sectorTable, ShortStreamTable shortStreamTable, int minSizeOfStandardStream) {
-		byte[] data = new byte[0];
-		if (totalStreamSize >= minSizeOfStandardStream) {
-			Sector sector = sectorTable.get(firstSectorID);
-			while (sector != null) {
-				data = BytesUtil.merge(data, sector.getBlock().readBytes());
-				sector = sectorTable.getNext(sector);
-			}
-		} else {
-			ShortStream shortStream = shortStreamTable.get(firstSectorID);
-			while (shortStream != null) {
-				data = BytesUtil.merge(data, shortStream.getBlock().readBytes());
-				shortStream = shortStreamTable.getNext(shortStream);
-			}
-		}
-		return data;
-	}
-
-	public void setData(SectorTable sectorTable, ShortStreamTable shortStreamTable, int minSizeOfStandardStream,
-			byte[] setData) {
-		if (totalStreamSize >= minSizeOfStandardStream) {
-			Sector sector = sectorTable.get(firstSectorID);
-			int sectorSize = sectorTable.getSizeOfSector();
-			for (int i = 0; i < (int) Math.ceil(setData.length / sectorSize); i++) {
-				byte[] newData = BytesUtil.slice(setData, i * sectorSize, sectorSize);
-				//sector.setBytes(newData);
-				sector = sectorTable.getNext(sector);
-			}
-		} else {
-			ShortStream shortStream = shortStreamTable.get(firstSectorID);
-			int shortStreamSize = shortStreamTable.getSizeOfShortStream();
-			for (int i = 0; i < (int) Math.ceil(setData.length / shortStreamSize); i++) {
-				byte[] newData = BytesUtil.slice(setData, i * shortStreamSize, shortStreamSize);
-				//shortStream.setBytes(newData);
-				shortStream = shortStreamTable.getNext(shortStream);
-			}
-		}
 	}
 
 	public String getName() {

@@ -28,11 +28,22 @@ public class BytesBlock {
 		this.charset = motherBlock.charset;
 	}
 
-	public byte[] readBytes() {
-		return readBytes(0, length);
+	public void write(byte[] wBytes) {
+		if (length < wBytes.length) {
+			throw new IndexOutOfBoundsException();
+		} else if (length > wBytes.length) {
+			wBytes = BytesUtil.merge(wBytes, new byte[length - wBytes.length]);
+		}
+		for (int i = offset; i < offset + length; i++) {
+			bytes[i] = wBytes[i - offset];
+		}
 	}
 
-	public byte[] readBytes(int offset, int length) {
+	public byte[] read() {
+		return read(0, length);
+	}
+
+	public byte[] read(int offset, int length) {
 		if (rangeCheck(offset, length) == false) {
 			throw new IndexOutOfBoundsException();
 		}
@@ -44,7 +55,7 @@ public class BytesBlock {
 	}
 
 	public long readLong(int offset, int length) {
-		byte[] bytes = this.readBytes(offset, length);
+		byte[] bytes = this.read(offset, length);
 		return BytesUtil.toLong(bytes, endianType);
 	}
 
@@ -53,7 +64,7 @@ public class BytesBlock {
 	}
 
 	public int readInt(int offset, int length) {
-		byte[] bytes = this.readBytes(offset, length);
+		byte[] bytes = this.read(offset, length);
 		return BytesUtil.toInteger(bytes, endianType);
 	}
 
@@ -62,7 +73,7 @@ public class BytesBlock {
 	}
 
 	public String readString(int offset, int length) {
-		byte[] bytes = this.readBytes(offset, length);
+		byte[] bytes = this.read(offset, length);
 		return BytesUtil.toString(bytes, charset);
 	}
 
@@ -71,7 +82,7 @@ public class BytesBlock {
 	}
 
 	public List<Integer> readIntList(int offset, int length, int splitSize) {
-		byte[] bytes = this.readBytes(offset, length);
+		byte[] bytes = this.read(offset, length);
 		return BytesUtil.toIntegerList(bytes, splitSize, endianType);
 	}
 

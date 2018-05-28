@@ -29,6 +29,7 @@ public class ShortStreamTable {
 			sector = sectorTable.getNext(sector);
 		}
 		size = shortStreamMap.size();
+		this.sizeOfShortStream = sizeOfShortStream;
 
 		ssat = new SSAT(firstSSATID, sectorTable);
 	}
